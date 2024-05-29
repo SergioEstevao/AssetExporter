@@ -5,15 +5,19 @@ struct AssetExporter {
 
     static func exportSession(forItem item: AVPlayerItem) async {
         let composition = AVMutableComposition()
-        let compositionAudioTrack = composition.addMutableTrack(withMediaType: .audio, preferredTrackID: CMPersistentTrackID(kCMPersistentTrackID_Invalid))
 
-        while item.status != .readyToPlay {
-            try? await Task.sleep(for: .seconds(1))
+//        while item.status != .readyToPlay {
+//            try? await Task.sleep(for: .seconds(1))
+//        }
+
+
+        guard let compositionAudioTrack = composition.addMutableTrack(withMediaType: .audio, preferredTrackID:  CMPersistentTrackID(kCMPersistentTrackID_Invalid)),
+            let sourceAudioTrack = try? await item.asset.loadTracks(withMediaType: .audio).first else {
+            print("Failed to create audio track")
+            return
         }
-
         do {
-            let sourceAudioTrack = try await item.asset.loadTracks(withMediaType: .audio).first!
-            try compositionAudioTrack?.insertTimeRange(CMTimeRange(start: .zero, end: .indefinite), of: sourceAudioTrack, at: .zero)
+            try compositionAudioTrack.insertTimeRange(CMTimeRangeMake(start: .zero, duration: item.asset.duration), of: sourceAudioTrack, at: CMTime.zero)
         } catch {
             print("Failed to create audio track: \(error)")
             return
@@ -23,8 +27,8 @@ struct AssetExporter {
             print("Failed to create export session")
             return
         }
-
-        let fileName = (item.asset as! AVURLAsset).url.lastPathComponent.replacingOccurrences(of: (item.asset as! AVURLAsset).url.pathExtension, with: "m4a")
+        let fileExtension = UTType(AVFileType.m4a.rawValue)?.preferredFilenameExtension ?? "m4a"
+        let fileName = (item.asset as! AVURLAsset).url.lastPathComponent.replacingOccurrences(of: (item.asset as! AVURLAsset).url.pathExtension, with: fileExtension)
         let documentsDirectory = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask).last!
         let outputURL = documentsDirectory.appendingPathComponent(fileName)
 
