@@ -48,6 +48,16 @@ struct AssetExporter {
         if let error = exporter.error {
             print("Exporter error: \(error)")
         }
+
+        if exporter.status == .cancelled {
+            print("Export cancelled")
+            return
+        }
+
+        if exporter.status == .failed {
+            print("Exporter failed")
+            return
+        }
     }
 
 }
